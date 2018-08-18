@@ -1,0 +1,1 @@
+nvcc -o ../Executables/analyzeMass.exe ../Objects/massAnalysis.obj ../Objects/vec3d.obj ../Objects/orbit.obj ../Objects/inputDataHandler.obj

@@ -1,0 +1,1 @@
+nvcc -dc ../inputFileHandler.cpp -o ../Objects/inputFileHandler.obj
