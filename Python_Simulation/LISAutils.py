@@ -286,6 +286,7 @@ def distSqr(orbit1, orbit2):
 def dist(orbit1, orbit2):
     return sqrt(distSqr(orbit1, orbit2))
 
+
 class LISA:
     armLength = 2.5*10**9
     def __init__(self, initialOrientiationAngle = 0, initialLongitude = 0):
@@ -297,30 +298,15 @@ class LISA:
 
         self.sats = []
 
-        self.sats.append(orbit(
-            pi / 2 + initialOrientiationAngle,#mean anomaly
-            ecc,
-            incline,
-            initialLongitude - initialOrientiationAngle,#longitude of ascending node
-            -pi / 2,#argument of perihelion
-            astroUnit,
-            anomType = 'meanAnom', name = 'LISA Craft 1'))
-        self.sats.append(orbit(
-            pi / 2 + initialOrientiationAngle - orbitalOffsetAngle,
-            ecc,
-            incline,
-            initialLongitude - initialOrientiationAngle + orbitalOffsetAngle,
-            -pi / 2,
-            astroUnit,
-            anomType = 'meanAnom', name = 'LISA Craft 2'))
-        self.sats.append(orbit(
-            pi / 2 + initialOrientiationAngle - 2 * orbitalOffsetAngle,
-            ecc,
-            incline,
-            initialLongitude - initialOrientiationAngle + 2 * orbitalOffsetAngle,
-            -pi / 2,
-            astroUnit,
-            anomType = 'meanAnom', name = 'LISA Craft 3'))
+        for i in range(3):
+            self.sats.append(orbit(
+                pi / 2 + initialOrientiationAngle + i * orbitalOffsetAngle + initialLongitude,             #mean anomaly
+                ecc,                                                                    #ecc
+                incline,                                                                #incline
+                - initialOrientiationAngle - i * orbitalOffsetAngle,   #long. of asc. node
+                -pi / 2,                                                                #arg. of Peri.
+                astroUnit,                                                              #semi major axis
+                anomType = 'meanAnom', name = 'LISA Craft ' + str(i)))
 
     def sat(self, n):
         return self.sats[n]
