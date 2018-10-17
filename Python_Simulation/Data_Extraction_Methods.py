@@ -60,8 +60,7 @@ def arrayNormalize(inputArray):
 	return np.array([item / np.sqrt(sum(item * item)) for item in inputArray])
 
 def getArmUnits(stacks):
-	armVectors = getArmVectors(stacks)
-	return np.array([arrayNormalize(item) for item in armVectors])
+	return np.array([arrayNormalize(item) for item in getArmVectors(stacks)])
 
 def getD_ArmVectors(stacks):
 	return armDifferencer(getD_Pos(stacks))
@@ -70,9 +69,7 @@ def arrayDot(inputArray1, inputArray2):
 	return np.array([sum(item[0] * item[1]) for item in zip(inputArray1, inputArray2)])
 
 def getD_ArmLengths(stacks):
-	dArmVectors = getD_ArmVectors(stacks)
-	armUnits = getArmUnits(stacks)
-	return np.array([arrayDot(item[0], item[1]) for item in zip(dArmVectors, armUnits)])
+	return np.array([arrayDot(item[0], item[1]) for item in zip(getD_ArmVectors(stacks), getArmUnits(stacks))])
 
 def getArmAngles(stacks):
 	armUnits = getArmUnits(stacks)
@@ -92,24 +89,20 @@ def getD_ArmAngles(stacks):
 	return newAngles - unperturbedAngles
 
 def getArmVel(stacks):
-	armUnits = getArmUnits(stacks)
 	vel = getVel(stacks)
 	armVelVectors = armDifferencer(vel)
-	return np.array([arrayDot(pair[0], pair[1]) for pair in zip(armVelVectors, armUnits)])
+	return np.array([arrayDot(pair[0], pair[1]) for pair in zip(armVelVectors, getArmUnits(stacks))])
 
 def getD_ArmVel(stacks):
-	armUnits = getArmUnits(stacks)
 	dVel = getD_Vel(stacks)
 	armD_VelVectors = armDifferencer(dVel)
-	return np.array([arrayDot(pair[0], pair[1]) for pair in zip(armD_VelVectors, armUnits)])
+	return np.array([arrayDot(pair[0], pair[1]) for pair in zip(armD_VelVectors, getArmUnits(stacks))])
 
 def getGuidingCenterPos(stacks):
-	positions = getPos(stacks)
-	return np.array(sum(positions)) / 3
+	return np.array(sum(getPos(stacks))) / 3
 
 def getGuidingCenterD_Pos(stacks):
-	dPositions = getD_Pos(stacks)
-	return np.array(sum(dPositions)) / 3
+	return np.array(sum(getD_Pos(stacks))) / 3
 
 def get_rHatPhiHatGuidingCenterD_Pos(stacks):
 	dPos = getGuidingCenterD_Pos(stacks)
@@ -129,9 +122,9 @@ def getD_DistToGuide(stacks):
 	guidePos = getGuidingCenterPos(stacks)
 	guideD_Pos = getGuidingCenterD_Pos(stacks)
 	output = []
-	for pair in zip(getPos(stacks), getD_Pos(stacks)):
-		guideToPosHat = arrayNormalize(pair[0] - guidePos)
-		output.append(arrayDot(guideToPosHat, pair[1] - guideD_Pos))
+	for item in zip(getPos(stacks), getD_Pos(stacks)):
+		guideToPosHat = arrayNormalize(item[0] - guidePos)
+		output.append(arrayDot(guideToPosHat, item[1] - guideD_Pos))
 	return np.array(output)
 
 def getAccels(stacks, times):
@@ -150,16 +143,12 @@ def getArmAccels(stacks, times):
 	return np.array([arrayDot(item[0], item[1]) for item in zip(armUnits, accels)])
 
 def getPerturbativeAccelValues(stacks):
-	pos = getPos(stacks)
-	dPos = getD_Pos(stacks)
-	accels = [solarDifference(pair[0], pair[1]) for pair in zip(pos, dPos)]
-	armUnits = getArmUnits(stacks)
-	return np.array([arrayDot(item[0], item[1]) for item in zip(armDifferencer(accels), armUnits)])
+	accels = [solarDifference(item[0], item[1]) for item in zip(getPos(stacks), getD_Pos(stacks))]
+	return np.array([arrayDot(item[0], item[1]) for item in zip(armDifferencer(accels), getArmUnits(stacks))])
 
 def getArmAccelDotVel(stacks):
 	accels = getPerturbativeAccelValues(stacks) + getArmAccels(stacks)
-	vels = getD_ArmVel(stacks)
-	return np.array([arrayDot(item[0], item[1]) for item in zip(accels, vels)])
+	return np.array([arrayDot(item[0], item[1]) for item in zip(accels, getD_ArmVel(stacks))])
 
 
 
