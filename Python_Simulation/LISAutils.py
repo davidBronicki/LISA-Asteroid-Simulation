@@ -288,7 +288,7 @@ def dist(orbit1, orbit2):
 
 
 class LISA:
-    armLength = 2.5*10**9
+    armLength = 2.5e9
     def __init__(self, initialOrientiationAngle = 0, initialLongitude = 0):
         alpha = LISA.armLength / (2 * astroUnit)
         ecc = sqrt(1 + (2 / sqrt(3)) * alpha + (4 / 3) * alpha ** 2) - 1

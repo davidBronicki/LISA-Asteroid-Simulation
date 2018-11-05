@@ -19,6 +19,36 @@ def linInterp(List, x0, dx, x):
 def interpFunct(List, x0, dx):
     return lambda x: linInterp(List, x0, dx, x)
 
+def interpOnto(xList, yList, ontoList):
+    i = 0
+    outputList = []
+    for x in ontoList:
+        while (True):
+            if i >= len(xList):
+                xDiff = xList[-1] - xList[-2]
+                yDiff = yList[-1] - yList[-2]
+                m = yDiff / xDiff
+                dx = x - xList[-1]
+                outputList.append(m*dx + yList[-1])
+                break
+            if xList[i] < x:
+                i += 1
+                continue
+            if i == 0:
+                xDiff = xList[1] - xList[0]
+                yDiff = yList[1] - yList[0]
+                m = yDiff / xDiff
+                dx = x - xList[0]
+                outputList.append(m*dx + yList[0])
+                break
+            xDiff = xList[i] - xList[i-1]
+            yDiff = yList[i] - yList[i-1]
+            m = yDiff / xDiff
+            dx = x - xList[i]
+            outputList.append(m*dx + yList[i])
+            break
+    return outputList
+
 def df(funct, x, dx, order = 1):
     if order == 1:
         temp = funct(x + dx / 2) - funct(x - dx / 2)

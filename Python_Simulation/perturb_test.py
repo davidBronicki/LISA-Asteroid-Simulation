@@ -4,26 +4,74 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as ani
 # import matplotlib.colors as cl
 import my_package.util as tools
-from math import *
+# from math import *
+import math
 
 from Simulation_Core import *
 from Data_Extraction_Methods import *
 
+numberOfYear = 6
+dt = 1e4
+initYear = 2029
+length = year*numberOfYear
+initPhase = -np.pi / 3 + math.radians(0)
+# initPhase = np.pi / 6
 
-stacks, times, ceresPositions, newTimes, dt = performSimulation(np.pi / 6 * 0, 2029, 6*year, 1e5)
+stacks, times, ceresPositions, newTimes, dt = performSimulation(initPhase, initYear, length, dt)
 
 # relAngle = relativeAngleToCeres(stacks)
 # normAngleToCeres = normAngleFromArmsToCeres(stacks)
-# diff = get_rHatPhiHatGuidingCenterD_Pos(stacks)
+diff = get_rHatPhiHatGuidingCenterD_Pos(stacks)
 # diff = getGuidingCenterD_Pos(stacks)
 armDif = getD_ArmLengths(stacks)
 deltaDistToGuide = getD_DistToGuide(stacks)
 # armAccels = getArmAccels(stacks, times)
 twoBodyPerturbAccels = getPerturbativeAccelValues(stacks)
-# armLengths = getArmLengths(stacks)
+armLengths = getArmLengths(stacks)
 # angleDif = getD_ArmAngles(stacks)
 # armAccelDotVel = getArmAccelDotVel(stacks)
 
+# stacks1, times1, ceresPositions, newTimes1, dt = performSimulation(initPhase, initYear, length, dt)
+# stacks2, times2, ceresPositions, newTimes2, dt = perturbativePerformSimulation(initPhase, initYear, length, dt)
+
+# overallTimes = np.arange(2029, 2029 + numberOfYear, .01)
+# for i in range(3):
+# 	stacks1[i] = tools.interpOnto(newTimes1, stacks1[i], overallTimes)
+# for i in range(3):
+# 	stacks2[i] = tools.interpOnto(newTimes2, stacks2[i], overallTimes)
+
+# armDif1 = getD_ArmLengths(stacks1)
+# armDif2 = getD_ArmLengths(stacks2)
+
+# plt.figure(1)
+# plt.plot(overallTimes, armDif1[0], label = 'arm 1')
+# plt.plot(overallTimes, armDif1[1], label = 'arm 2')
+# plt.plot(overallTimes, armDif1[2], label = 'arm 3')
+# plt.title('Perturbed Arm Length using Non-Perturbative Integrator')
+# plt.xlabel('time (years)')
+# plt.ylabel('displacement (meters)')
+# plt.grid()
+# plt.legend()
+# plt.figure(2)
+# plt.plot(overallTimes, armDif2[0], label = 'arm 1')
+# plt.plot(overallTimes, armDif2[1], label = 'arm 2')
+# plt.plot(overallTimes, armDif2[2], label = 'arm 3')
+# plt.title('Perturbed Arm Length using Perturbative Integrator')
+# plt.xlabel('time (years)')
+# plt.ylabel('displacement (meters)')
+# plt.grid()
+# plt.legend()
+
+# plt.figure(3)
+# plt.plot(overallTimes, armDif2[0] - armDif1[0], label = 'arm 1')
+# plt.plot(overallTimes, armDif2[1] - armDif1[1], label = 'arm 2')
+# plt.plot(overallTimes, armDif2[2] - armDif1[2], label = 'arm 3')
+# plt.title('Difference between Perturbative and Non-Perturbative Integrator')
+# plt.xlabel('time (years)')
+# plt.ylabel('displacement (meters)')
+# plt.grid()
+# plt.legend()
+# plt.show()
 
 
 ##############build mp4 of arm perturbation with varying constellation angles###############
@@ -114,9 +162,9 @@ twoBodyPerturbAccels = getPerturbativeAccelValues(stacks)
 
 
 # intermediateUnitlessVal = 2.5e9 / (2.0 * LISAutils.astroUnit)
-# lisaEccentricity = np.sqrt(1.0 + (2.0 / sqrt(3.0)) * intermediateUnitlessVal
+# lisaEccentricity = np.sqrt(1.0 + (2.0 / np.sqrt(3.0)) * intermediateUnitlessVal
 # 	+ (4.0 / 3.0) * intermediateUnitlessVal**2.0) - 1.0
-# lisaMeanAnglularVelocity = sqrt(mu / LISAutils.astroUnit**3)
+# lisaMeanAnglularVelocity = np.sqrt(mu / LISAutils.astroUnit**3)
 
 # def alphaFunct(t, initialLongitude, initialConstellationPhase):
 #     return t * lisaMeanAnglularVelocity + initialLongitude - initialConstellationPhase
@@ -125,23 +173,23 @@ twoBodyPerturbAccels = getPerturbativeAccelValues(stacks)
 #     return 2.0 * np.pi * satNumber / 3.0 + initialConstellationPhase - initialLongitude
 
 # def psiFunct(alpha,beta):
-#     return (alpha - beta - lisaEccentricity * sin(alpha - beta)
-#     	+ (lisaEccentricity**2.0) * cos(alpha - beta) * sin(alpha - beta))
+#     return (alpha - beta - lisaEccentricity * np.sin(alpha - beta)
+#     	+ (lisaEccentricity**2.0) * np.cos(alpha - beta) * np.sin(alpha - beta))
 
 # def x(psi, satNumber):
-#     x = ((LISAutils.astroUnit * (cos(psi) + lisaEccentricity) * (1.0 + intermediateUnitlessVal / sqrt(3.0))
-# 	    	/ (1.0 + lisaEccentricity)) * cos((2.0 * np.pi / 3.0) * (satNumber - 1)) 
-# 	    - (LISAutils.astroUnit * sqrt(1.0 - lisaEccentricity**2.0) * sin(psi)) * sin((2.0 * np.pi / 3.0) * (satNumber - 1)))
+#     x = ((LISAutils.astroUnit * (np.cos(psi) + lisaEccentricity) * (1.0 + intermediateUnitlessVal / np.sqrt(3.0))
+# 	    	/ (1.0 + lisaEccentricity)) * np.cos((2.0 * np.pi / 3.0) * (satNumber - 1)) 
+# 	    - (LISAutils.astroUnit * np.sqrt(1.0 - lisaEccentricity**2.0) * np.sin(psi)) * np.sin((2.0 * np.pi / 3.0) * (satNumber - 1)))
 #     return x
 
 # def y(psi, satNumber):
-#     y = ((LISAutils.astroUnit * (cos(psi) + lisaEccentricity) * (1.0 + intermediateUnitlessVal / sqrt(3.0))
-# 	    	/ (1.0 + lisaEccentricity)) * sin((2.0 * np.pi / 3.0) * (satNumber - 1))
-# 	    + (LISAutils.astroUnit * sqrt(1.0 - lisaEccentricity**2.0) * sin(psi)) * cos((2.0 * np.pi / 3.0) * (satNumber - 1)))
+#     y = ((LISAutils.astroUnit * (np.cos(psi) + lisaEccentricity) * (1.0 + intermediateUnitlessVal / np.sqrt(3.0))
+# 	    	/ (1.0 + lisaEccentricity)) * np.sin((2.0 * np.pi / 3.0) * (satNumber - 1))
+# 	    + (LISAutils.astroUnit * np.sqrt(1.0 - lisaEccentricity**2.0) * np.sin(psi)) * np.cos((2.0 * np.pi / 3.0) * (satNumber - 1)))
 #     return y
 
 # def z(psi):
-#     z = LISAutils.astroUnit * (cos(psi) + lisaEccentricity) * (intermediateUnitlessVal / (1.0 + lisaEccentricity))
+#     z = LISAutils.astroUnit * (np.cos(psi) + lisaEccentricity) * (intermediateUnitlessVal / (1.0 + lisaEccentricity))
 #     return z
 
 # def dnkvPos(t, satNumber, initialConstellationPhase, initialLongitude):
@@ -152,7 +200,7 @@ twoBodyPerturbAccels = getPerturbativeAccelValues(stacks)
 
 # rcpArms = []
 # dnkvArms = [[],[],[]]
-# for t in np.arange(0, 6*year, 1e4):
+# for t in times:
 # 	# earth = LISAutils.orbit(radians(200.7), 0.01671, radians(0),
 # 	# 	radians(-11.261), radians(114.2078), LISAutils.astroUnit, anomType = 'meanAnom',
 # 	# 	simTime = LISAutils.yearToEpochMJD(2029), paramTime = 58324.75, name = 'earth')
@@ -162,9 +210,9 @@ twoBodyPerturbAccels = getPerturbativeAccelValues(stacks)
 # 	dnkvArms[0].append(np.sqrt(sum((pos1 - pos2) * (pos1 - pos2))))
 # 	dnkvArms[1].append(np.sqrt(sum((pos1 - pos3) * (pos1 - pos3))))
 # 	dnkvArms[2].append(np.sqrt(sum((pos3 - pos2) * (pos3 - pos2))))
-# 	rcpArms.append(rcpArmLengths(t, 0, 0))#np.arctan2(earth.y(), earth.x())))
+# 	# rcpArms.append(rcpArmLengths(t, 0, 0))#np.arctan2(earth.y(), earth.x())))
 
-# rcpArms = tools.transpose(rcpArms)
+# # rcpArms = tools.transpose(rcpArms)
 # dnkvArms = np.array(dnkvArms)
 
 # plt.figure(1)
@@ -193,12 +241,12 @@ twoBodyPerturbAccels = getPerturbativeAccelValues(stacks)
 
 ################energy argument plots#####################
 
-plt.figure(1)
-plt.plot(newTimes, twoBodyPerturbAccels[0])
-plt.plot(newTimes, twoBodyPerturbAccels[1])
-plt.plot(newTimes, twoBodyPerturbAccels[2])
-plt.grid()
-plt.title('perturbative acceleration')
+# plt.figure(1)
+# plt.plot(newTimes, twoBodyPerturbAccels[0])
+# plt.plot(newTimes, twoBodyPerturbAccels[1])
+# plt.plot(newTimes, twoBodyPerturbAccels[2])
+# plt.grid()
+# plt.title('perturbative acceleration')
 # plt.figure(2)
 # plt.plot(newTimes, armAccels[0])
 # plt.plot(newTimes, armAccels[1])
@@ -245,7 +293,7 @@ plt.title('perturbative acceleration')
 # plt.grid()
 # plt.title('energy')
 
-plt.show()
+# plt.show()
 
 ##########multi-plot of different initial constellation phases###################
 
@@ -306,19 +354,19 @@ plt.show()
 #####################Standard plotting routines################################
 
 
-plt.figure(1)
-plt.plot(newTimes, deltaDistToGuide[0], label = "Satellite 1")
-plt.plot(newTimes, deltaDistToGuide[1], label = "Satellite 2")
-plt.plot(newTimes, deltaDistToGuide[2], label = "Satellite 3")
-plt.grid()
-plt.title('Perturbation of the Distance of LISA Satellites\nto the Guiding Center (Constellation Angle 120)')
-plt.xlabel('time (year)')
-plt.ylabel('displacement (meters)')
-# plt.ylim([-18, 18])
-plt.legend()
-
-
 # plt.figure(1)
+# plt.plot(newTimes, deltaDistToGuide[0], label = "Satellite 1")
+# plt.plot(newTimes, deltaDistToGuide[1], label = "Satellite 2")
+# plt.plot(newTimes, deltaDistToGuide[2], label = "Satellite 3")
+# plt.grid()
+# plt.title('Perturbation of the Distance of LISA Satellites\nto the Guiding Center (Constellation Angle 120)')
+# plt.xlabel('time (year)')
+# plt.ylabel('displacement (meters)')
+# # plt.ylim([-18, 18])
+# plt.legend()
+
+
+# plt.figure(2)
 # # plt.plot(newTimes, relAngle, label = 'angle to Ceres', linestyle=':')
 # plt.plot(newTimes, diff[0], label = 'r displacement')
 # # plt.plot(newTimes, diff[1], label = 'phi displacement')
@@ -330,16 +378,16 @@ plt.legend()
 # # plt.ylim([-180, 180])
 # # plt.legend()
 
-plt.figure(2)
+plt.figure(3)
 plt.plot(newTimes, armDif[0], label = 'arm 1 displacement')
 plt.plot(newTimes, armDif[1], label = 'arm 2 displacement')
 plt.plot(newTimes, armDif[2], label = 'arm 3 displacement')
 plt.grid()
 plt.xlabel('time (years)')
 plt.ylabel('displacement (meters)')
-plt.title('Perturbation of LISA Arm Lengths due to Ceres')#\nwith 0 constellation phase angle')
+plt.title('Perturbation of LISA Arm Lengths due to Ceres')#\nat 120 Degree Initial Phase Angle')#\nwith 0 constellation phase angle')
 plt.legend()
-# plt.ylim([-30, 30])
+plt.ylim([-20, 20])
 
 # plt.figure(3)
 # # plt.plot(newTimes, normAngleToCeres[0]*180/np.pi, label = 'arm 1 normal angle to Ceres')
@@ -374,4 +422,6 @@ plt.legend()
 # plt.title('Perturbation of LISA Arm Angles due to Ceres')
 # plt.legend()
 # plt.ylim([-0.0015, 0.0015])
+
+
 plt.show()
