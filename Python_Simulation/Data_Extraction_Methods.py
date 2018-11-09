@@ -136,11 +136,19 @@ def getAccels(stacks, times):
 		output.append(temp)
 	return np.array(output)
 
-def getArmAccels(stacks, times):
+def getArmAccels(stacks, times, inCeres):
+	ceresPositions = inCeres
 	armUnits = getArmUnits(stacks)
-	accels = getAccels(stacks, times)
-	accels = armDifferencer(accels)
+	accels = armDifferencer(getAccels(stacks, times))
 	return np.array([arrayDot(item[0], item[1]) for item in zip(armUnits, accels)])
+
+def distToCeres(stacks, times, dt, inCeres):
+	guidePos = getGuidingCenterPos(stacks)
+	output = []
+	for timePoint in zip(times, getGuidingCenterPos(stacks)):
+		displacement = tools.linInterp(inCeres, 0, dt, timePoint[0]) - timePoint[1]
+		output.append(np.sqrt(sum(displacement**2)))
+	return np.array(output)
 
 def getPerturbativeAccelValues(stacks):
 	accels = [solarDifference(item[0], item[1]) for item in zip(getPos(stacks), getD_Pos(stacks))]
@@ -150,7 +158,13 @@ def getArmAccelDotVel(stacks):
 	accels = getPerturbativeAccelValues(stacks) + getArmAccels(stacks)
 	return np.array([arrayDot(item[0], item[1]) for item in zip(accels, getD_ArmVel(stacks))])
 
-
+def normAngleFromArmsToCeres(stacks, times, dt, inCeres):
+	armUnits = getArmUnits(stacks)
+	dispToCeres = []
+	for timePoint in zip(times, getGuidingCenterPos(stacks)):
+		dispToCeres.append(tools.linInterp(inCeres, 0, dt, timePoint[0]) - timePoint[1])
+	unitToCeres = arrayNormalize(dispToCeres)
+	return np.array([np.arccos(arrayDot(armUnit, unitToCeres)) - np.pi / 2 for armUnit in armUnits])
 
 
 # def relativeAngleToCeres(inputStacks):
