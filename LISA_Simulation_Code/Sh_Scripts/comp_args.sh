@@ -1,1 +1,0 @@
-nvcc -dc ../argumentsHandler.cpp -o ../Objects/argumentsHandler.obj

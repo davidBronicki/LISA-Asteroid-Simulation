@@ -1,1 +1,0 @@
-nvcc -dc ../dataHandler.cpp -o ../Objects/dataHandler.obj

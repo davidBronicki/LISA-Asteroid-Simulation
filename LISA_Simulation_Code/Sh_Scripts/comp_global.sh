@@ -1,1 +1,0 @@
-nvcc -dc ../globalFunctions.cpp -o ../Objects/globalFunctions.obj
