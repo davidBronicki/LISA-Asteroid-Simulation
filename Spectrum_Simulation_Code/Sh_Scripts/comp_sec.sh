@@ -1,0 +1,1 @@
+clang -dc ../SecularSimulation.cpp -o ../Objects/SecularSimulation.obj
