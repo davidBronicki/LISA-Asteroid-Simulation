@@ -12,7 +12,7 @@ from Data_Extraction_Methods import *
 
 simulationDataDirectory = "../../Build_Directory/"
 
-fileName = "outputData.csv"
+fileName = "Angle_0__Time_Index_0_Output.csv"
 
 data = tools.floatParseCSV(simulationDataDirectory + fileName)
 
@@ -72,17 +72,17 @@ armLengths = getArmLengths(stacks)
 # plt.legend()
 
 
-# plt.figure(2)
-# # plt.plot(newTimes, relAngle, label = 'angle to Ceres', linestyle=':')
-# plt.plot(newTimes, diff[0], label = 'r displacement')
-# # plt.plot(newTimes, diff[1], label = 'phi displacement')
-# # plt.plot(newTimes, diff[2], label = 'z displacement')
-# plt.grid()
-# plt.xlabel('time (years)')
-# plt.ylabel('displacement (meters)')
-# plt.title('Perturbation of LISA Guiding Center due to Ceres\nin r-hat Direction')
-# # plt.ylim([-180, 180])
-# # plt.legend()
+plt.figure(2)
+# plt.plot(newTimes, relAngle, label = 'angle to Ceres', linestyle=':')
+plt.plot(newTimes, diff[0], label = 'r displacement')
+# plt.plot(newTimes, diff[1], label = 'phi displacement')
+# plt.plot(newTimes, diff[2], label = 'z displacement')
+plt.grid()
+plt.xlabel('time (years)')
+plt.ylabel('displacement (meters)')
+plt.title('Perturbation of LISA Guiding Center due to Ceres\nin r-hat Direction')
+# plt.ylim([-180, 180])
+# plt.legend()
 
 plt.figure(3)
 plt.plot(newTimes, armDif[0], label = 'arm 1 displacement')

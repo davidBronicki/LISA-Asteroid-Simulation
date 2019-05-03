@@ -7,10 +7,9 @@
 #include <vector>
 #include <thread>
 
-#include "VectorSpace.h"
-#include "Orbit.h"
+#include "LISA.h"
 #include "globalFunctions.h"
-#include "dataHandler.h"
+#include "inputFileHandler.h"
 #include "RungeKutta.h"
 
 #include "defineOrbitalValues.h"
@@ -63,38 +62,38 @@ vec3 centralForce(const vec3& position)
 }
 
 state oribitalDerivativeWithAsteroids(const state& input, double time){
-	auto position = Projection<0>::get(input);
-	auto velocity = Projection<1>::get(input);
+	auto position = project<0>(input);
+	auto velocity = project<1>(input);
 	vec3 force;
 	for (asteroidData asteroid : asteroidPositions)
 	{
-		force += asteroidForce(Projection<0>::get(asteroid) - position, Projection<1>::get(asteroid));
+		force += asteroidForce(project<0>(asteroid) - position, project<1>(asteroid));
 	}
 	return state(velocity, force + centralForce(position));
 }
 
 state oribitalDerivativeWithoutAsteroids(const state& input, double time){
-	auto position = Projection<0>::get(input);
-	auto velocity = Projection<1>::get(input);
+	auto position = project<0>(input);
+	auto velocity = project<1>(input);
 	return state(velocity, centralForce(position));
 }
 
 LISA_Vector LISA_DerivativeWithAsteroids(const LISA_Vector& input, double time){
-	return LISA_Vector(oribitalDerivativeWithAsteroids(Projection<0>::get(input), time),
-		oribitalDerivativeWithAsteroids(Projection<1>::get(input), time),
-		oribitalDerivativeWithAsteroids(Projection<2>::get(input), time));
+	return LISA_Vector(oribitalDerivativeWithAsteroids(project<0>(input), time),
+		oribitalDerivativeWithAsteroids(project<1>(input), time),
+		oribitalDerivativeWithAsteroids(project<2>(input), time));
 }
 
 LISA_Vector LISA_DerivativeWithoutAsteroids(const LISA_Vector& input, double time){
-	return LISA_Vector(oribitalDerivativeWithoutAsteroids(Projection<0>::get(input), time),
-		oribitalDerivativeWithoutAsteroids(Projection<1>::get(input), time),
-		oribitalDerivativeWithoutAsteroids(Projection<2>::get(input), time));
+	return LISA_Vector(oribitalDerivativeWithoutAsteroids(project<0>(input), time),
+		oribitalDerivativeWithoutAsteroids(project<1>(input), time),
+		oribitalDerivativeWithoutAsteroids(project<2>(input), time));
 }
 
 #define THREAD_COUNT 2
 
 totalState dualDerivative(const totalState& input){
-	double time = Projection<0>::get(input);
+	double time = project<0>(input);
 	vector<thread> threads;
 	for (int i = 0; i < THREAD_COUNT; i++){
 		threads.push_back(thread([](int threadNumber, double time){
@@ -108,8 +107,8 @@ totalState dualDerivative(const totalState& input){
 		threads[i].join();
 	}
 	return totalState(1,
-		LISA_DerivativeWithoutAsteroids(Projection<1>::get(input), time),
-		LISA_DerivativeWithAsteroids(Projection<2>::get(input), time));
+		LISA_DerivativeWithoutAsteroids(project<1>(input), time),
+		LISA_DerivativeWithAsteroids(project<2>(input), time));
 }
 
 double stateSqrError(const vec3& currentState, const vec3& deltaState, double dt)
@@ -119,23 +118,23 @@ double stateSqrError(const vec3& currentState, const vec3& deltaState, double dt
 
 double orbitalSqrError(const state& currentState, const state& deltaState, double dt)
 {
-	double e1 = stateSqrError(Projection<0>::get(currentState), Projection<0>::get(deltaState), dt);
-	double e2 = stateSqrError(Projection<1>::get(currentState), Projection<1>::get(deltaState), dt);
+	double e1 = stateSqrError(project<0>(currentState), project<0>(deltaState), dt);
+	double e2 = stateSqrError(project<1>(currentState), project<1>(deltaState), dt);
 	return e1 + e2;
 }
 
 double LISA_SqrError(const LISA_Vector& currentState, const LISA_Vector& deltaState, double dt)
 {
-	double e1 = orbitalSqrError(Projection<0>::get(currentState), Projection<0>::get(deltaState), dt);
-	double e2 = orbitalSqrError(Projection<1>::get(currentState), Projection<1>::get(deltaState), dt);
-	double e3 = orbitalSqrError(Projection<2>::get(currentState), Projection<2>::get(deltaState), dt);
+	double e1 = orbitalSqrError(project<0>(currentState), project<0>(deltaState), dt);
+	double e2 = orbitalSqrError(project<1>(currentState), project<1>(deltaState), dt);
+	double e3 = orbitalSqrError(project<2>(currentState), project<2>(deltaState), dt);
 	return e1 + e2 + e3;
 }
 
 double dualError(const totalState& currentState, const totalState& deltaState, double dt)
 {
-	double e1 = LISA_SqrError(Projection<1>::get(currentState), Projection<1>::get(deltaState), dt);
-	double e2 = LISA_SqrError(Projection<2>::get(currentState), Projection<2>::get(deltaState), dt);
+	double e1 = LISA_SqrError(project<1>(currentState), project<1>(deltaState), dt);
+	double e2 = LISA_SqrError(project<2>(currentState), project<2>(deltaState), dt);
 	return sqrt(e1 + e2);
 }
 
@@ -157,20 +156,20 @@ totalState extractLISA(LISA input)
 vector<double> flattendLISA(LISA_Vector input)
 {
 	vector<double> output;
-	vector<state> sats({Projection<0>::get(input),
-		Projection<1>::get(input),
-		Projection<2>::get(input)});
+	vector<state> sats({project<0>(input),
+		project<1>(input),
+		project<2>(input)});
 	vector<vec3> vecs;
 	for (auto sat : sats)
 	{
-		vecs.push_back(Projection<0>::get(sat));
-		vecs.push_back(Projection<1>::get(sat));
+		vecs.push_back(project<0>(sat));
+		vecs.push_back(project<1>(sat));
 	}
 	for (auto vec : vecs)
 	{
-		output.push_back(Projection<0>::get(vec));
-		output.push_back(Projection<1>::get(vec));
-		output.push_back(Projection<2>::get(vec));
+		output.push_back(project<0>(vec));
+		output.push_back(project<1>(vec));
+		output.push_back(project<2>(vec));
 	}
 	return output;
 }
@@ -201,24 +200,33 @@ string formatTime(double time){
 	return output;
 }
 
-int main(int argc, char** argv){
-	print("initializing");
-	dataHandler data(argc, argv);
-	asteroids = data.generateAsteroids();
-	for (auto asteroid : asteroids)
+vector<string> generateHeaderStringList()
+{
+	vector<string> output;
+	output.push_back("simulation_time");
+	for (string nameBase = "unperturbed_"; nameBase != "perturbed_"; nameBase = "perturbed_")
 	{
-		// print("initial asteroid data: ", asteroidData(asteroid.pos(), asteroid.getMass()));
-		asteroidPositions.push_back(asteroidData(asteroid.pos(), asteroid.getMass()));
+		for (int satIndex = 0; satIndex < 3; ++satIndex)
+		{
+			for (string vectorType = "_position_"; vectorType != "_velocity_"; vectorType = "_velocity_")
+			{
+				output.push_back(nameBase + to_string(satIndex) + vectorType + "x");
+				output.push_back(nameBase + to_string(satIndex) + vectorType + "y");
+				output.push_back(nameBase + to_string(satIndex) + vectorType + "z");
+			}
+		}
 	}
-	print("Number of Asteroids: ");
-	print(asteroidPositions.size());
-	auto item = data.generateLISA();
-	RungeKuttaSimulation<totalState> simulation(extractLISA(item), 1.0e4, dualDerivative, dualError, 1e-6);
-	// RungeKuttaSimulation<totalState> simulation(extractLISA(item), 1.0e4, dualDerivative, dualError, 1e-10);
+	return output;
+}
+
+void runSimulation(const LISA& lisa, string simulationDescriptor)
+{
+	auto headerStringList = generateHeaderStringList();
+
+	RungeKuttaSimulation<totalState> simulation(extractLISA(lisa), 1.0e4, dualDerivative, dualError, 1e-8);
 	double time = 0;
-	print("entering simulation");
-	// simulation.nextState();
-	double totalSimTime = 24.0 * 365 * 5 * 3600;
+	print(simulationDescriptor, " : entering simulation");
+	const static double totalSimTime = 24.0 * 365 * 5 * 3600;
 	clock_t time0 = clock();
 	while (time < totalSimTime)
 	{
@@ -226,15 +234,15 @@ int main(int argc, char** argv){
 		double ellapsedTime = (double)(clock() - time0) / CLOCKS_PER_SEC;
 		double avgRate = percentComplete / ellapsedTime;
 		double eta = (1 - percentComplete) / avgRate;
-		print("Percent Complete: ", percentComplete * 100);
-		print("ETA: ", formatTime(eta));
+		print(simulationDescriptor, " : Percent Complete: ", percentComplete * 100);
+		print(simulationDescriptor, " : ETA: ", formatTime(eta));
 		print();
 		time += simulation.nextState();
 	}
-	print("Simulation Complete");
+	print(simulationDescriptor, " : Simulation Complete");
 	double ellapsedTime = (double)(clock() - time0) / CLOCKS_PER_SEC;
-	print("Ellapsed Time: ", formatTime(ellapsedTime));
-	print("formatting data");
+	print(simulationDescriptor, " : Ellapsed Time: ", formatTime(ellapsedTime));
+	print(simulationDescriptor, " : formatting data");
 	vector<double> timeList;
 	vector<LISA_Vector> stateData;
 	vector<LISA_Vector> perturbationData;
@@ -256,17 +264,83 @@ int main(int argc, char** argv){
 		temp1.insert(temp1.end(), temp3.begin(), temp3.end());
 		finalData.push_back(temp1);
 	}
-	writeCSVfile(finalData, "outputData.csv");
-	return 0;
+	writeCSVfile(finalData, headerStringList,
+		"Secular_Output_Directory/" + simulationDescriptor + "__Output.csv");
 }
 
-// 2029.000000
+int main(int argc, char** argv){
+	print("Initializing");
+	inputFileHandler data(1000000);//start with 1000000 gaussian numbers
+	vector<int> asteroidIndices(1000);
+	for (int i = 0; i < 1000; ++i)
+	{
+		asteroidIndices[i] = i;
+	}
 
-// 0006426875858,0149065164777,-666067850
-// -29828,001409,00208
+	double maxTimeOffset = 466.6 * 24 * 3600;
+	double startingYear = 2029;
+	double startingEpoch = yearToEpoch(startingYear);
+	double earthOrbitalParameterEpoch = 28324.75;
 
-// 0125880781586,-080098420149,-666067850
-// 016134,025128,00208
+	vector<vector<double>> anglesFromCeres;
+	int timeIndex = 0;
 
-// -132307657445,-068966744627,-666067850
-// 013694,-26537,00208
+	print("Starting Simulations");
+
+	for (double timeOffset = 0;
+		timeOffset < maxTimeOffset;
+		timeOffset += maxTimeOffset * (20.0 / 360), ++timeIndex)
+	{
+		//set up initial values for everything but LISA itself. This
+		//includes the asteroids and earth. This has to be done
+		//inside this loop because these depend on the initial time
+		//of the simulation.
+		double startingTime = startingEpoch * 24 * 3600 + timeOffset;
+		asteroids = data.generateOrbits(asteroidIndices, startingTime);
+
+		Orbit earth(radians(200.7),//mean anomaly
+			0.01671,//ecc
+			AU,//semi major
+			radians(0),//incline
+			radians(-11.261),//longitude ascending
+			radians(114.2078),//argument perihelion
+			true,//provided mean anomaly, not true anomaly
+			earthOrbitalParameterEpoch * 24 * 3600,//parameter epoch
+			startingTime,//initial simulation epoch
+			5.972e24,//Earth mass
+			"Earth");//name
+
+		anglesFromCeres.push_back({
+			(atan2(earth.y(), earth.x()) - PI * 20 / 180)//longitude of LISA
+			- atan2(asteroids[0].y(), asteroids[0].x())//longitude of Ceres
+		});
+
+		for (double constellationAngle = 0; constellationAngle < 120; constellationAngle += 20)
+		{
+			LISA lisa(constellationAngle * PI / 180, atan2(earth.y(), earth.x()) - PI * 20 / 180);
+			asteroidPositions = vector<asteroidData>();
+			for (auto asteroid : asteroids)
+			{
+				asteroidPositions.push_back(asteroidData(asteroid.pos(), asteroid.getMass()));
+			}
+
+			runSimulation(lisa, "Angle_" + to_string((int)constellationAngle)
+				+ "__Time_Index_" + to_string(timeIndex));
+		}
+	}
+
+	writeCSVfile(anglesFromCeres,
+		{"angles_from_ceres"},
+		"Secular_Output_Directory/Sampled_Angles_from_Ceres.csv");
+
+	vector<vector<double>> constellationAngles;
+	for (double constellationAngle = 0; constellationAngle < 120; constellationAngle += 20)
+	{
+		constellationAngles.push_back({constellationAngle});
+	}
+	writeCSVfile(constellationAngles,
+		{"initial_constellation_angles"},
+		"Secular_Output_Directory/Sampled_Constellation_Angles.csv");
+
+	return 0;
+}
