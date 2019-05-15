@@ -35,7 +35,7 @@ int main()
 	{
 		//running for 5 years, and dt = 1 day.
 		vector<double> dataForThisTimeStep;
-		//dataForThisTimeStep = []
+		//dataForThisTimeStep = [] # python equivalent
 
 		for (auto&& asteroid : asteroids)
 		{
@@ -48,7 +48,7 @@ int main()
 		}
 
 		outputData.push_back(dataForThisTimeStep);
-		//outputData.append(dataForThisTimeStep)
+		//outputData.append(dataForThisTimeStep) # python equivalent
 	}
 
 

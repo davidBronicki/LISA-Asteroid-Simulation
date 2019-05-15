@@ -2,6 +2,39 @@ import numpy as np
 from Simulation_Core import *
 
 
+def buildStacksAndTimes(fileLocation):
+	data = tools.floatParseCSV(fileLocation)
+
+	def buildState(satData, satPerturbedData):
+		pos = np.array(satData[:3])
+		vel = np.array(satData[3:])
+		dPos = np.array(satPerturbedData[:3])
+		dVel = np.array(satPerturbedData[3:])
+		return State(pos, vel, dPos, dVel)
+
+	stacks = [[],[],[]]
+	times = []
+
+	# print(len(data))
+
+	for entry in data:
+		#entry is a list of floats specifying time, lisa state, and delta lisa state
+		times.append(entry[0])
+		sat1Data = entry[1:7]
+		sat2Data = entry[7:13]
+		sat3Data = entry[13:19]
+		sat1PerturbedData = entry[19:25]
+		sat2PerturbedData = entry[25:31]
+		sat3PerturbedData = entry[31:37]
+		state1 = buildState(sat1Data, sat1PerturbedData)
+		state2 = buildState(sat2Data, sat2PerturbedData)
+		state3 = buildState(sat3Data, sat3PerturbedData)
+		stacks[0].append(state1)
+		stacks[1].append(state2)
+		stacks[2].append(state3)
+
+	return (stacks, times)
+
 def getPos(stacks):
 	output = []
 	for item in stacks:

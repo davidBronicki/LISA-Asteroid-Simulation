@@ -90,16 +90,16 @@ LISA_Vector LISA_DerivativeWithoutAsteroids(const LISA_Vector& input, double tim
 		oribitalDerivativeWithoutAsteroids(project<2>(input), time));
 }
 
-#define THREAD_COUNT 2
+#define THREAD_COUNT 3
 
 totalState dualDerivative(const totalState& input){
 	double time = project<0>(input);
 	vector<thread> threads;
 	for (int i = 0; i < THREAD_COUNT; i++){
 		threads.push_back(thread([](int threadNumber, double time){
-				for (int i = threadNumber; i < asteroids.size(); i += THREAD_COUNT){
-					asteroids[i].setTime(time);
-					asteroidPositions[i] = asteroidData(asteroids[i].pos(), asteroids[i].getMass());
+				for (int j = threadNumber; j < asteroids.size(); j += THREAD_COUNT){
+					asteroids[j].setTime(time);
+					asteroidPositions[j] = asteroidData(asteroids[j].pos(), asteroids[j].getMass());
 				}
 			}, i , time));
 	}
@@ -237,11 +237,16 @@ void runSimulation(const LISA& lisa, string simulationDescriptor)
 		print(simulationDescriptor, " : Percent Complete: ", percentComplete * 100);
 		print(simulationDescriptor, " : ETA: ", formatTime(eta));
 		print();
+
 		time += simulation.nextState();
+
+		// cout << asteroidPositions[0] << endl;
 	}
 	print(simulationDescriptor, " : Simulation Complete");
 	double ellapsedTime = (double)(clock() - time0) / CLOCKS_PER_SEC;
 	print(simulationDescriptor, " : Ellapsed Time: ", formatTime(ellapsedTime));
+
+
 	print(simulationDescriptor, " : formatting data");
 	vector<double> timeList;
 	vector<LISA_Vector> stateData;
@@ -252,6 +257,7 @@ void runSimulation(const LISA& lisa, string simulationDescriptor)
 		stateData.push_back(project<1>(item));
 		perturbationData.push_back(project<2>(item) - project<1>(item));
 	}
+
 	vector<vector<double>> finalData;
 	for (int i = 0; i < stateData.size(); i++)
 	{
@@ -268,16 +274,10 @@ void runSimulation(const LISA& lisa, string simulationDescriptor)
 		"Secular_Output_Directory/" + simulationDescriptor + "__Output.csv");
 }
 
-int main(int argc, char** argv){
-	print("Initializing");
-	inputFileHandler data(1000000);//start with 1000000 gaussian numbers
-	vector<int> asteroidIndices(1000);
-	for (int i = 0; i < 1000; ++i)
-	{
-		asteroidIndices[i] = i;
-	}
-
-	double maxTimeOffset = 466.6 * 24 * 3600;
+void runLaggingBatch(inputFileHandler& data, vector<int>& asteroidIndices)
+{
+	// double maxTimeOffset = 466.6 * 24 * 3600;
+	double maxTimeOffset = 285.6 * 24 * 3600;
 	double startingYear = 2029;
 	double startingEpoch = yearToEpoch(startingYear);
 	double earthOrbitalParameterEpoch = 28324.75;
@@ -285,7 +285,7 @@ int main(int argc, char** argv){
 	vector<vector<double>> anglesFromCeres;
 	int timeIndex = 0;
 
-	print("Starting Simulations");
+	print("Starting Simulations for Lagging Batch");
 
 	for (double timeOffset = 0;
 		timeOffset < maxTimeOffset;
@@ -298,40 +298,42 @@ int main(int argc, char** argv){
 		double startingTime = startingEpoch * 24 * 3600 + timeOffset;
 		asteroids = data.generateOrbits(asteroidIndices, startingTime);
 
+		asteroidPositions = vector<asteroidData>();
+		for (auto&& asteroid : asteroids)
+		{
+			asteroidPositions.push_back(asteroidData(asteroid.pos(), asteroid.getMass()));
+		}
+
 		Orbit earth(radians(200.7),//mean anomaly
-			0.01671,//ecc
-			AU,//semi major
-			radians(0),//incline
-			radians(-11.261),//longitude ascending
-			radians(114.2078),//argument perihelion
+			0.01671,//eccentricity
+			AU,//semi major axis
+			radians(0),//inclination
+			radians(-11.261),//longitude of ascending node
+			radians(114.2078),//argument of  the perihelion
 			true,//provided mean anomaly, not true anomaly
 			earthOrbitalParameterEpoch * 24 * 3600,//parameter epoch
 			startingTime,//initial simulation epoch
 			5.972e24,//Earth mass
 			"Earth");//name
 
+		double longitudeOfLISA = atan2(earth.y(), earth.x()) - PI * 20 / 180;
+		double longitudeOfCeres = atan2(asteroids[0].y(), asteroids[0].x());
 		anglesFromCeres.push_back({
-			(atan2(earth.y(), earth.x()) - PI * 20 / 180)//longitude of LISA
-			- atan2(asteroids[0].y(), asteroids[0].x())//longitude of Ceres
+			longitudeOfLISA - longitudeOfCeres
 		});
 
-		for (double constellationAngle = 0; constellationAngle < 120; constellationAngle += 20)
+		for (double constellationAngle = 0; constellationAngle < 140; constellationAngle += 20)
 		{
-			LISA lisa(constellationAngle * PI / 180, atan2(earth.y(), earth.x()) - PI * 20 / 180);
-			asteroidPositions = vector<asteroidData>();
-			for (auto asteroid : asteroids)
-			{
-				asteroidPositions.push_back(asteroidData(asteroid.pos(), asteroid.getMass()));
-			}
+			LISA lisa(constellationAngle * PI / 180, longitudeOfLISA);
 
-			runSimulation(lisa, "Angle_" + to_string((int)constellationAngle)
+			runSimulation(lisa, "Lagging__Angle_" + to_string((int)constellationAngle)
 				+ "__Time_Index_" + to_string(timeIndex));
 		}
 	}
 
 	writeCSVfile(anglesFromCeres,
 		{"angles_from_ceres"},
-		"Secular_Output_Directory/Sampled_Angles_from_Ceres.csv");
+		"Secular_Output_Directory/Lagging__Sampled_Angles_from_Ceres.csv");
 
 	vector<vector<double>> constellationAngles;
 	for (double constellationAngle = 0; constellationAngle < 120; constellationAngle += 20)
@@ -340,7 +342,92 @@ int main(int argc, char** argv){
 	}
 	writeCSVfile(constellationAngles,
 		{"initial_constellation_angles"},
-		"Secular_Output_Directory/Sampled_Constellation_Angles.csv");
+		"Secular_Output_Directory/Lagging__Sampled_Constellation_Angles.csv");
+}
+
+void runLeadingBatch(inputFileHandler& data, vector<int>& asteroidIndices)
+{
+	// double maxTimeOffset = 466.6 * 24 * 3600;
+	double maxTimeOffset = 285.6 * 24 * 3600;
+	double startingYear = 2029;
+	double startingEpoch = yearToEpoch(startingYear);
+	double earthOrbitalParameterEpoch = 28324.75;
+
+	vector<vector<double>> anglesFromCeres;
+	int timeIndex = 0;
+
+	print("Starting Simulations for Leading Batch");
+
+	for (double timeOffset = 0;
+		timeOffset < maxTimeOffset;
+		timeOffset += maxTimeOffset * (20.0 / 360), ++timeIndex)
+	{
+		//set up initial values for everything but LISA itself. This
+		//includes the asteroids and earth. This has to be done
+		//inside this loop because these depend on the initial time
+		//of the simulation.
+		double startingTime = startingEpoch * 24 * 3600 + timeOffset;
+		asteroids = data.generateOrbits(asteroidIndices, startingTime);
+
+		asteroidPositions = vector<asteroidData>();
+		for (auto&& asteroid : asteroids)
+		{
+			asteroidPositions.push_back(asteroidData(asteroid.pos(), asteroid.getMass()));
+		}
+
+		Orbit earth(radians(200.7),//mean anomaly
+			0.01671,//eccentricity
+			AU,//semi major axis
+			radians(0),//inclination
+			radians(-11.261),//longitude of ascending node
+			radians(114.2078),//argument of  the perihelion
+			true,//provided mean anomaly, not true anomaly
+			earthOrbitalParameterEpoch * 24 * 3600,//parameter epoch
+			startingTime,//initial simulation epoch
+			5.972e24,//Earth mass
+			"Earth");//name
+
+		double longitudeOfLISA = atan2(earth.y(), earth.x()) + PI * 20 / 180;
+		double longitudeOfCeres = atan2(asteroids[0].y(), asteroids[0].x());
+		anglesFromCeres.push_back({
+			longitudeOfLISA - longitudeOfCeres
+		});
+
+		for (double constellationAngle = 0; constellationAngle < 140; constellationAngle += 20)
+		{
+			LISA lisa(constellationAngle * PI / 180, longitudeOfLISA);
+
+			runSimulation(lisa, "Leading__Angle_" + to_string((int)constellationAngle)
+				+ "__Time_Index_" + to_string(timeIndex));
+		}
+	}
+
+	writeCSVfile(anglesFromCeres,
+		{"angles_from_ceres"},
+		"Secular_Output_Directory/Leading__Sampled_Angles_from_Ceres.csv");
+
+	vector<vector<double>> constellationAngles;
+	for (double constellationAngle = 0; constellationAngle < 120; constellationAngle += 20)
+	{
+		constellationAngles.push_back({constellationAngle});
+	}
+	writeCSVfile(constellationAngles,
+		{"initial_constellation_angles"},
+		"Secular_Output_Directory/Leading__Sampled_Constellation_Angles.csv");
+}
+
+
+int main(int argc, char** argv){
+	print("Initializing");
+	inputFileHandler data(1000000);//start with 1000000 gaussian numbers
+	vector<int> asteroidIndices(1000);
+	for (int i = 0; i < 1000; ++i)
+	{
+		asteroidIndices[i] = i;
+	}
+
+	runLaggingBatch(data, asteroidIndices);
+	runLeadingBatch(data, asteroidIndices);
 
 	return 0;
 }
