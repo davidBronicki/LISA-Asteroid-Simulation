@@ -188,9 +188,7 @@ vector<float> inputFileHandler::getOrbitData(int index)
 	for (int i = FLOATS_PER_ORBIT * index; i < FLOATS_PER_ORBIT * (index + 1); i++)
 	{
 		output.push_back(orbitalData[i]);
-		// print(orbitalData[i]);
 	}
-	// print("\n");
 	return output;
 }
 
@@ -312,9 +310,9 @@ Orbit inputFileHandler::generateOrbit(int index, float time0)
 	return Orbit(getRandValue(orbitData[MEAN_ANOMALY], orbitData[SIGMA_MEAN_ANOM]),
 		getRandValue(orbitData[ECCENTRICITY], orbitData[SIGMA_ECC]),
 		AU*getRandValue(orbitData[SEMI_MAJOR], orbitData[SIGMA_SEMI_MAJOR]),
-		getRandValue(orbitData[INCLINE], orbitData[SIGMA_INCLINE]),
-		getRandValue(orbitData[LONG_ASCEND_NODE], orbitData[SIGMA_LONG_ASCEND]),
-		getRandValue(orbitData[ARG_PERI], orbitData[SIGMA_ARG_PERI]),
+		PI / 180 * getRandValue(orbitData[INCLINE], orbitData[SIGMA_INCLINE]),
+		PI / 180 * getRandValue(orbitData[LONG_ASCEND_NODE], orbitData[SIGMA_LONG_ASCEND]),
+		PI / 180 * getRandValue(orbitData[ARG_PERI], orbitData[SIGMA_ARG_PERI]),
 		false, orbitalData[EPOCH_MJD], time0, mass, getName(index));
 }
 

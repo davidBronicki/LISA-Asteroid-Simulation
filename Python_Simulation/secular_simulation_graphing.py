@@ -10,18 +10,10 @@ from Data_Extraction_Methods import *
 
 simulationDataDirectory = "../../Build_Directories/LISA/Secular_Output_Directory/"
 
-prefixes = ["Lagging__", "Leading__"]
-
-midWord = "__Time_Index_"
-
-postfix = "__Output.csv"
-
-constellationAngles = range(0, 120, 20)
-ceresAngleIndices = range(0, 18)
-
+prefixes = ["Lagging", "Leading"]
 
 def graphMesh(xList, yList, inputMesh, graphTitle):
-	levels = list(range(5, 30, 5))
+	levels = list(range(5, 35, 5))
 	fmt = {}
 	for level in levels:
 		fmt[level] = "%.1f"%(level)
@@ -43,24 +35,33 @@ def findMaxPerturbation(stacks):
 			maxDifs[-1] = max(maxDifs[-1], abs(singleDifference))
 	return maxDifs
 
+def stackMeshes(meshList):
+	totalMesh = []
+	for mesh in meshList:
+		totalMesh.extend(mesh)
+	return totalMesh
+
 for prefix in prefixes:
+	ceresAngleLocation = simulationDataDirectory\
+		+ prefix + "__Sampled_Angles_from_Ceres.csv"
+	constellationAngleLocation = simulationDataDirectory\
+		+ prefix + "__Sampled_Constellation_Angles.csv"
+
+	constellationAngles = tools.transpose(
+		tools.floatParseCSV(constellationAngleLocation))[0]
+	ceresAngles = tools.transpose(
+		tools.floatParseCSV(ceresAngleLocation))[0]
+	ceresAngleIndices = list(range(len(ceresAngles)))
+
 	perturbationMeshes = [[],[],[]]
 	for constellationAngle in constellationAngles:
 		perturbationLists = [[],[],[]]
 		for ceresAngleIndex in ceresAngleIndices:
 			fileLocation = simulationDataDirectory\
-				+ prefix + "Angle_"\
-				+ str(constellationAngle) + midWord\
-				+ str(ceresAngleIndex) + postfix
+				+ prefix + "__Angle_"\
+				+ str(int(constellationAngle)) + "__Time_Index_"\
+				+ str(ceresAngleIndex) + "__Output.csv"
 			(stacks, times) = buildStacksAndTimes(fileLocation)
-
-			# print(fileLocation)
-			# temp = getD_ArmLengths(stacks)
-			# plt.plot(times, temp[0])
-			# plt.plot(times, temp[1])
-			# plt.plot(times, temp[2])
-			# plt.grid()
-			# plt.show()
 
 			perturbations = findMaxPerturbation(stacks)
 			perturbationLists[0].append(perturbations[0])
@@ -70,28 +71,20 @@ for prefix in prefixes:
 		perturbationMeshes[1].append(perturbationLists[1])
 		perturbationMeshes[2].append(perturbationLists[2])
 
-	ceresAngleLocation = simulationDataDirectory\
-		+ prefix + "Sampled_Angles_from_Ceres.csv"
-	ceresAngles = tools.transpose(
-		tools.floatParseCSV(ceresAngleLocation))[0]
 	for i in range(len(ceresAngles)):
 		ceresAngles[i] *= 180 / np.pi
-		# if ceresAngles[i] < 0:
-		# 	ceresAngles[i] += 360
 
 	for i in range(1, len(ceresAngles)):
-		# print(ceresAngles[i], "  ", end = "")
 		while abs(ceresAngles[i] - ceresAngles[i-1]) > 180:
 			ceresAngles[i] += 360
-		# print(ceresAngles[i])
 
-	constellationAngleLocation = simulationDataDirectory\
-		+ prefix + "Sampled_Constellation_Angles.csv"
-	constellationAnglesFromFile = tools.transpose(
-		tools.floatParseCSV(constellationAngleLocation))[0]
-	names = ["Arm_1", "Arm_2", "Arm_3"]
+	bigMesh = stackMeshes(perturbationMeshes)
+	graphMesh(ceresAngles, list(range(0, 360, 20)), bigMesh,
+		"Maximum Perturbation Experienced on Arbitrary Arm "
+			+ prefix + " Earth.")
 	for i in range(3):
-		graphMesh(ceresAngles, constellationAnglesFromFile,
+		graphMesh(ceresAngles, constellationAngles,
 			perturbationMeshes[i],
-			prefix + names[i])
-
+			"Maximum Perturbation Experienced on Arm " + str(i + 1)
+				+ " " + prefix + " Earth.")
+	

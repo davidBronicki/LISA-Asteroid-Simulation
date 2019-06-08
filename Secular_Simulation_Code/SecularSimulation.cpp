@@ -204,11 +204,11 @@ vector<string> generateHeaderStringList()
 {
 	vector<string> output;
 	output.push_back("simulation_time");
-	for (string nameBase = "unperturbed_"; nameBase != "perturbed_"; nameBase = "perturbed_")
+	for (auto&& nameBase : vector<string>{"unperturbed_", "perturbed_"})
 	{
 		for (int satIndex = 0; satIndex < 3; ++satIndex)
 		{
-			for (string vectorType = "_position_"; vectorType != "_velocity_"; vectorType = "_velocity_")
+			for (auto&& vectorType : vector<string>{"_position_", "_velocity_"})
 			{
 				output.push_back(nameBase + to_string(satIndex) + vectorType + "x");
 				output.push_back(nameBase + to_string(satIndex) + vectorType + "y");
@@ -228,19 +228,22 @@ void runSimulation(const LISA& lisa, string simulationDescriptor)
 	print(simulationDescriptor, " : entering simulation");
 	const static double totalSimTime = 24.0 * 365 * 5 * 3600;
 	clock_t time0 = clock();
+
+	int previousPercent = 0;
 	while (time < totalSimTime)
 	{
 		double percentComplete = time / totalSimTime;
-		double ellapsedTime = (double)(clock() - time0) / CLOCKS_PER_SEC;
-		double avgRate = percentComplete / ellapsedTime;
-		double eta = (1 - percentComplete) / avgRate;
-		print(simulationDescriptor, " : Percent Complete: ", percentComplete * 100);
-		print(simulationDescriptor, " : ETA: ", formatTime(eta));
-		print();
-
+		if ((int)(percentComplete * 100) > previousPercent)
+		{
+			previousPercent = (int)(percentComplete * 100);
+			double ellapsedTime = (double)(clock() - time0) / CLOCKS_PER_SEC;
+			double avgRate = percentComplete / ellapsedTime;
+			double eta = (1 - percentComplete) / avgRate;
+			print(simulationDescriptor, " : Percent Complete: ", (int)(percentComplete * 100));
+			print(simulationDescriptor, " : ETA: ", formatTime(eta));
+			print();
+		}
 		time += simulation.nextState();
-
-		// cout << asteroidPositions[0] << endl;
 	}
 	print(simulationDescriptor, " : Simulation Complete");
 	double ellapsedTime = (double)(clock() - time0) / CLOCKS_PER_SEC;
@@ -274,13 +277,22 @@ void runSimulation(const LISA& lisa, string simulationDescriptor)
 		"Secular_Output_Directory/" + simulationDescriptor + "__Output.csv");
 }
 
-void runLaggingBatch(inputFileHandler& data, vector<int>& asteroidIndices)
+struct simulationVariables
 {
-	// double maxTimeOffset = 466.6 * 24 * 3600;
-	double maxTimeOffset = 285.6 * 24 * 3600;
-	double startingYear = 2029;
-	double startingEpoch = yearToEpoch(startingYear);
-	double earthOrbitalParameterEpoch = 28324.75;
+	inputFileHandler data;
+	vector<int> asteroidIndices;
+	double leadingAngle;
+	string prefixName;
+	double maxTimeOffset;
+	double deltaTimeOffset;
+	double startingEpoch;
+	int deltaAngle;
+};
+
+// void runLaggingBatch(inputFileHandler& data, vector<int>& asteroidIndices)
+void runBatch(simulationVariables& vars)
+{
+	const static double earthOrbitalParameterEpoch = 28324.75;
 
 	vector<vector<double>> anglesFromCeres;
 	int timeIndex = 0;
@@ -288,15 +300,15 @@ void runLaggingBatch(inputFileHandler& data, vector<int>& asteroidIndices)
 	print("Starting Simulations for Lagging Batch");
 
 	for (double timeOffset = 0;
-		timeOffset < maxTimeOffset;
-		timeOffset += maxTimeOffset * (20.0 / 360), ++timeIndex)
+		timeOffset < vars.maxTimeOffset;
+		timeOffset += vars.deltaTimeOffset, ++timeIndex)
 	{
 		//set up initial values for everything but LISA itself. This
 		//includes the asteroids and earth. This has to be done
 		//inside this loop because these depend on the initial time
 		//of the simulation.
-		double startingTime = startingEpoch * 24 * 3600 + timeOffset;
-		asteroids = data.generateOrbits(asteroidIndices, startingTime);
+		double startingTime = vars.startingEpoch * 24 * 3600 + timeOffset;
+		asteroids = vars.data.generateOrbits(vars.asteroidIndices, startingTime);
 
 		asteroidPositions = vector<asteroidData>();
 		for (auto&& asteroid : asteroids)
@@ -316,24 +328,24 @@ void runLaggingBatch(inputFileHandler& data, vector<int>& asteroidIndices)
 			5.972e24,//Earth mass
 			"Earth");//name
 
-		double longitudeOfLISA = atan2(earth.y(), earth.x()) - PI * 20 / 180;
+		double longitudeOfLISA = atan2(earth.y(), earth.x()) + PI * vars.leadingAngle / 180;
 		double longitudeOfCeres = atan2(asteroids[0].y(), asteroids[0].x());
 		anglesFromCeres.push_back({
 			longitudeOfLISA - longitudeOfCeres
 		});
 
-		for (double constellationAngle = 0; constellationAngle < 140; constellationAngle += 20)
+		for (double constellationAngle = 0; constellationAngle < 120; constellationAngle += vars.deltaAngle)
 		{
 			LISA lisa(constellationAngle * PI / 180, longitudeOfLISA);
 
-			runSimulation(lisa, "Lagging__Angle_" + to_string((int)constellationAngle)
+			runSimulation(lisa, vars.prefixName + "__Angle_" + to_string((int)constellationAngle)
 				+ "__Time_Index_" + to_string(timeIndex));
 		}
 	}
 
 	writeCSVfile(anglesFromCeres,
 		{"angles_from_ceres"},
-		"Secular_Output_Directory/Lagging__Sampled_Angles_from_Ceres.csv");
+		"Secular_Output_Directory/" + vars.prefixName + "__Sampled_Angles_from_Ceres.csv");
 
 	vector<vector<double>> constellationAngles;
 	for (double constellationAngle = 0; constellationAngle < 120; constellationAngle += 20)
@@ -342,92 +354,44 @@ void runLaggingBatch(inputFileHandler& data, vector<int>& asteroidIndices)
 	}
 	writeCSVfile(constellationAngles,
 		{"initial_constellation_angles"},
-		"Secular_Output_Directory/Lagging__Sampled_Constellation_Angles.csv");
+		"Secular_Output_Directory/" + vars.prefixName + "__Sampled_Constellation_Angles.csv");
 }
-
-void runLeadingBatch(inputFileHandler& data, vector<int>& asteroidIndices)
-{
-	// double maxTimeOffset = 466.6 * 24 * 3600;
-	double maxTimeOffset = 285.6 * 24 * 3600;
-	double startingYear = 2029;
-	double startingEpoch = yearToEpoch(startingYear);
-	double earthOrbitalParameterEpoch = 28324.75;
-
-	vector<vector<double>> anglesFromCeres;
-	int timeIndex = 0;
-
-	print("Starting Simulations for Leading Batch");
-
-	for (double timeOffset = 0;
-		timeOffset < maxTimeOffset;
-		timeOffset += maxTimeOffset * (20.0 / 360), ++timeIndex)
-	{
-		//set up initial values for everything but LISA itself. This
-		//includes the asteroids and earth. This has to be done
-		//inside this loop because these depend on the initial time
-		//of the simulation.
-		double startingTime = startingEpoch * 24 * 3600 + timeOffset;
-		asteroids = data.generateOrbits(asteroidIndices, startingTime);
-
-		asteroidPositions = vector<asteroidData>();
-		for (auto&& asteroid : asteroids)
-		{
-			asteroidPositions.push_back(asteroidData(asteroid.pos(), asteroid.getMass()));
-		}
-
-		Orbit earth(radians(200.7),//mean anomaly
-			0.01671,//eccentricity
-			AU,//semi major axis
-			radians(0),//inclination
-			radians(-11.261),//longitude of ascending node
-			radians(114.2078),//argument of  the perihelion
-			true,//provided mean anomaly, not true anomaly
-			earthOrbitalParameterEpoch * 24 * 3600,//parameter epoch
-			startingTime,//initial simulation epoch
-			5.972e24,//Earth mass
-			"Earth");//name
-
-		double longitudeOfLISA = atan2(earth.y(), earth.x()) + PI * 20 / 180;
-		double longitudeOfCeres = atan2(asteroids[0].y(), asteroids[0].x());
-		anglesFromCeres.push_back({
-			longitudeOfLISA - longitudeOfCeres
-		});
-
-		for (double constellationAngle = 0; constellationAngle < 140; constellationAngle += 20)
-		{
-			LISA lisa(constellationAngle * PI / 180, longitudeOfLISA);
-
-			runSimulation(lisa, "Leading__Angle_" + to_string((int)constellationAngle)
-				+ "__Time_Index_" + to_string(timeIndex));
-		}
-	}
-
-	writeCSVfile(anglesFromCeres,
-		{"angles_from_ceres"},
-		"Secular_Output_Directory/Leading__Sampled_Angles_from_Ceres.csv");
-
-	vector<vector<double>> constellationAngles;
-	for (double constellationAngle = 0; constellationAngle < 120; constellationAngle += 20)
-	{
-		constellationAngles.push_back({constellationAngle});
-	}
-	writeCSVfile(constellationAngles,
-		{"initial_constellation_angles"},
-		"Secular_Output_Directory/Leading__Sampled_Constellation_Angles.csv");
-}
-
 
 int main(int argc, char** argv){
 	print("Initializing");
 	inputFileHandler data(1000000);//start with 1000000 gaussian numbers
-	vector<int> asteroidIndices(1000);
-	for (int i = 0; i < 1000; ++i)
+	vector<int> asteroidIndices(1);//we will use 1 asteroid
+	for (int i = 0; i < asteroidIndices.size(); ++i)
 	{
-		asteroidIndices[i] = i;
+		asteroidIndices[i] = i;//fill array of indices of the asteroids we want
 	}
 
-	runLaggingBatch(data, asteroidIndices);
-	runLeadingBatch(data, asteroidIndices);
+
+	double fullRotationTime = 466.6 * 24 * 3600;
+	double maxTimeOffset = 3 * fullRotationTime;
+	int deltaAngle = 5;
+	// double maxTimeOffset = fullRotationTime;
+	// int deltaAngle = 20;
+	double deltaTimeOffset = fullRotationTime * deltaAngle / 360;
+	double startingEpoch = yearToEpoch(2029);
+
+	simulationVariables vars{
+		data,
+		asteroidIndices,
+		-20,
+		"Lagging",
+		maxTimeOffset,
+		deltaTimeOffset,
+		startingEpoch,
+		deltaAngle
+	};
+
+	runBatch(vars);
+	vars.leadingAngle = 20;
+	vars.prefixName = "Leading";
+	runBatch(vars);
 
 	return 0;
 }
+
+
