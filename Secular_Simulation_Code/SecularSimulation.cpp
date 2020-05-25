@@ -18,6 +18,8 @@ using namespace std;
 using namespace vsu;
 using namespace lisa;
 
+//Some silly code for printing
+//which can be disabled by macros
 #ifdef DEBUG_MODE
 template<typename... Ts>
 void print(Ts... inputs){
@@ -40,6 +42,12 @@ void print(){
 #endif
 #endif
 
+/*
+Define types for use in the simulation.
+See VectorSpace.h for what this actually does
+(or don't; its a very complicated piece of code.
+These are essentially direct sums of vector spaces.)
+*/
 typedef ProductSpace<double, double, double> vec3;
 
 typedef ProductSpace<vec3, vec3> state;
@@ -51,16 +59,19 @@ typedef ProductSpace<vec3, double> asteroidData;
 vector<Orbit> asteroids;
 vector<asteroidData> asteroidPositions;
 
+//Inverse square law code
 vec3 asteroidForce(const vec3& displacement, double mass){
 	double distance = displacement.defaultMagnitude();
 	return displacement * mass * G / pow(distance, 3);
 }
 
+//Specialized for the sun
 vec3 centralForce(const vec3& position)
 {
 	return -1 * position * MU / pow(position.defaultMagnitude(), 3);
 }
 
+//apply sun force and asteroid forces to a single satellite
 state oribitalDerivativeWithAsteroids(const state& input, double time){
 	auto position = project<0>(input);
 	auto velocity = project<1>(input);
@@ -72,26 +83,32 @@ state oribitalDerivativeWithAsteroids(const state& input, double time){
 	return state(velocity, force + centralForce(position));
 }
 
+//apply only sun force to a single satellite
 state oribitalDerivativeWithoutAsteroids(const state& input, double time){
 	auto position = project<0>(input);
 	auto velocity = project<1>(input);
 	return state(velocity, centralForce(position));
 }
 
+//apply forces to all LISA satellites
 LISA_Vector LISA_DerivativeWithAsteroids(const LISA_Vector& input, double time){
 	return LISA_Vector(oribitalDerivativeWithAsteroids(project<0>(input), time),
 		oribitalDerivativeWithAsteroids(project<1>(input), time),
 		oribitalDerivativeWithAsteroids(project<2>(input), time));
 }
 
+//apply sun force to all LISA satellites
 LISA_Vector LISA_DerivativeWithoutAsteroids(const LISA_Vector& input, double time){
 	return LISA_Vector(oribitalDerivativeWithoutAsteroids(project<0>(input), time),
 		oribitalDerivativeWithoutAsteroids(project<1>(input), time),
 		oribitalDerivativeWithoutAsteroids(project<2>(input), time));
 }
 
+//idk why this is defined here, but it's self explanatory
 #define THREAD_COUNT 3
 
+//apply forces to one LISA constellation with sun and asteroids (the perturbed LISA)
+//and apply only the sun force to another constellation (the unperturbed LISA)
 totalState dualDerivative(const totalState& input){
 	double time = project<0>(input);
 	vector<thread> threads;
@@ -111,6 +128,8 @@ totalState dualDerivative(const totalState& input){
 		LISA_DerivativeWithAsteroids(project<2>(input), time));
 }
 
+//These codes collect the error of a given time step. Used for
+//the dynamic time step in Runge Kutta.
 double stateSqrError(const vec3& currentState, const vec3& deltaState, double dt)
 {
 	return deltaState.defaultSquareMagnitude() / currentState.defaultSquareMagnitude();
@@ -139,6 +158,8 @@ double dualError(const totalState& currentState, const totalState& deltaState, d
 }
 
 
+//Converts an "orbit" object (with orbital elements)
+//into a "state" object (with position and velocity)
 state extractSat(Orbit input)
 {
 	return state(input.pos(), input.vel());
@@ -153,6 +174,8 @@ totalState extractLISA(LISA input)
 	return totalState(0, temp2, temp2);
 }
 
+//This is to help in the file writing procedure.
+//Makes it so later we only need a single for loop.
 vector<double> flattendLISA(LISA_Vector input)
 {
 	vector<double> output;
@@ -174,6 +197,7 @@ vector<double> flattendLISA(LISA_Vector input)
 	return output;
 }
 
+//This is for printing the real time duration of the simulation
 string formatTime(double time){
 	int hrs = time / 3600;
 	time -= hrs * 3600;
@@ -200,6 +224,7 @@ string formatTime(double time){
 	return output;
 }
 
+//info to put in header file (separate from the raw data file)
 vector<string> generateHeaderStringList()
 {
 	vector<string> output;
@@ -348,7 +373,7 @@ void runBatch(simulationVariables& vars)
 		"Secular_Output_Directory/" + vars.prefixName + "__Sampled_Angles_from_Ceres.csv");
 
 	vector<vector<double>> constellationAngles;
-	for (double constellationAngle = 0; constellationAngle < 120; constellationAngle += 20)
+	for (double constellationAngle = 0; constellationAngle < 120; constellationAngle += vars.deltaAngle)
 	{
 		constellationAngles.push_back({constellationAngle});
 	}

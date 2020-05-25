@@ -10,14 +10,23 @@ import math
 from Simulation_Core import *
 from Data_Extraction_Methods import *
 
-numberOfYear = 6
-dt = 1e4
+numberOfYear = 5
+dt = 1e5
 initYear = 2029
 length = year*numberOfYear
-initPhase = -np.pi / 3 + math.radians(0)
+initPhase = -np.pi / 3 + math.radians(80)
 # initPhase = np.pi / 6
 
 stacks, times, ceresPositions, newTimes, dt = performSimulation(initPhase, initYear, length, dt)
+
+
+posList = getPos(stacks)[0]
+p_posList=posList + getD_Pos(stacks)[0]
+
+
+accelSun = (posList[2]-2*posList[1]+posList[0])/(times[1]-times[0])**2
+accel = (p_posList[2]-2*p_posList[1]+p_posList[0])/(times[1]-times[0])**2
+print(accel-accelSun)
 
 # relAngle = relativeAngleToCeres(stacks)
 normAngleToCeres = normAngleFromArmsToCeres(stacks, times, dt, ceresPositions)
@@ -355,22 +364,22 @@ armLengths = getArmLengths(stacks)
 #####################Standard plotting routines################################
 
 
-plt.figure(0)
-plt.plot(newTimes, armLengths[0])
-plt.plot(newTimes, armLengths[1])
-plt.plot(newTimes, armLengths[2])
+# plt.figure(0)
+# plt.plot(newTimes, armLengths[0])
+# plt.plot(newTimes, armLengths[1])
+# plt.plot(newTimes, armLengths[2])
 
 
-plt.figure(1)
-plt.plot(newTimes, deltaDistToGuide[0], label = "Satellite 1")
-plt.plot(newTimes, deltaDistToGuide[1], label = "Satellite 2")
-plt.plot(newTimes, deltaDistToGuide[2], label = "Satellite 3")
-plt.grid()
-plt.title('Perturbation of the Distance of LISA Satellites\nto the Guiding Center (Constellation Angle 120)')
-plt.xlabel('time (year)')
-plt.ylabel('displacement (meters)')
-# plt.ylim([-18, 18])
-plt.legend()
+# plt.figure(1)
+# plt.plot(newTimes, deltaDistToGuide[0], label = "Satellite 1")
+# plt.plot(newTimes, deltaDistToGuide[1], label = "Satellite 2")
+# plt.plot(newTimes, deltaDistToGuide[2], label = "Satellite 3")
+# plt.grid()
+# plt.title('Perturbation of the Distance of LISA Satellites\nto the Guiding Center (Constellation Angle 120)')
+# plt.xlabel('time (year)')
+# plt.ylabel('displacement (meters)')
+# # plt.ylim([-18, 18])
+# plt.legend()
 
 
 # plt.figure(2)
@@ -418,6 +427,31 @@ plt.ylim([-20, 20])
 # plt.title('Perturbative Acceleration due to Ceres')
 # plt.legend()
 # plt.ylim([-12, 12])
+
+# integratedPerturbation = []
+# for accelList in armAccels:
+# 	regularTimeList = np.arange(times[0], times[-1],(times[-1]-times[0])/len(times))
+# 	if (len(regularTimeList) > len(times)):
+# 		regularTimeList = regularTimeList[:-1]
+# 	accelFunct = tools.splineInterpolate(accelList,times)
+# 	velFunct = tools.integ(accelFunct,
+# 		times[0],times[-1], regularTimeList[1]-times[0],
+# 		iType='indefinite')
+# 	posList = tools.integ(velFunct,
+# 		times[0],times[-1], regularTimeList[1]-times[0],
+# 		iType='list')
+# 	integratedPerturbation.append(
+# 		tools.interpOnto(regularTimeList, posList, times))
+
+# plt.figure(5)
+# plt.plot(newTimes, integratedPerturbation[0], label = 'arm 1 displacement')
+# plt.plot(newTimes, integratedPerturbation[1], label = 'arm 2 displacement')
+# plt.plot(newTimes, integratedPerturbation[2], label = 'arm 3 displacement')
+# plt.grid()
+# plt.xlabel('time (years)')
+# plt.ylabel('displacement (m)')
+# plt.title('Perturbation of the Arm Lengths\nIntegrated from the\
+# 	Perturbation Acceleration')
 
 # # plt.figure(5)
 # # plt.plot(newTimes, angleDif[0] * 180 / np.pi * 3600, label = 'angle 1 displacement')

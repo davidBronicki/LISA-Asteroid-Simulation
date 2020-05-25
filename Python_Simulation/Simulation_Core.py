@@ -340,7 +340,7 @@ def performSimulation(initialConstellationPhase, startYear, totalTime, inputDT):
 	dt = inputDT
 
 	startEpoch = LISAutils.yearToEpochMJD(startYear)
-	print(startEpoch)
+	# print(startEpoch)
 
 	earth = LISAutils.orbit(math.radians(200.7), 0.01671, math.radians(0),
 		math.radians(-11.261), math.radians(114.2078), LISAutils.astroUnit, anomType = 'meanAnom',

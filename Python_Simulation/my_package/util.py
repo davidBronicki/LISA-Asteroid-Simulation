@@ -20,6 +20,9 @@ def interpFunct(List, x0, dx):
     return lambda x: linInterp(List, x0, dx, x)
 
 def interpOnto(xList, yList, ontoList):
+    # xList and yList produces a list of ordered pairs
+    # and ontoList is the new x positions you would
+    # like to interpolate to.
     i = 0
     outputList = []
     for x in ontoList:

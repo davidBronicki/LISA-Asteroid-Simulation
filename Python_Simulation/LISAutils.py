@@ -10,17 +10,17 @@ psi = eccentric anomaly
 eta = mean anomaly
 e = eccentricity
 i = inclination of orbital plane from ecliptic plane
-omega = angle of ascending node from x axis
-theta = angle of periapsis from ascending node
+RAAN = Right Assention of the Assending Node (capital omega in literature)
+omega = angle to the periapsis from ascending node (lower case omega in literature)
 p = semi latus rectum
 a = semi major axis
 t = time
 mass = mass
 Also:
 t0 and eta0 are initial values
-co, so are sine and cosine of omega
+co, so are sine and cosine of RAAN ('o' is for capital Omega)
 ci, si are sine and cosine of inclination
-these are made to save on computation power (not really important)'''
+these are made to save on computation power (not important for the physics)'''
 import numpy as np
 from math import *
 
@@ -108,8 +108,8 @@ class orbit:
             self.eta0 = self.eta
         
         self.i = incline
-        self.omega = angAscend
-        self.theta = angPeri
+        self.RAAN = angAscend
+        self.omega = angPeri
         
         if dimType == 'semiLatus':
             self.p = dimension
@@ -127,8 +127,8 @@ class orbit:
         self.name = name
 
         #commonly used variables (saves on processing power)
-        self.co = cos(self.omega)
-        self.so = sin(self.omega)
+        self.co = cos(self.RAAN)
+        self.so = sin(self.RAAN)
         self.ci = cos(self.i)
         self.si = sin(self.i)
         if self.si == 0:
@@ -141,8 +141,8 @@ class orbit:
             '\tSemi-Major Axis: ' + str(degrees(self.a)) + '\n' + \
             '\tEccentricity: ' + str(degrees(self.e)) + '\n' + \
             '\tInclination: ' + str(degrees(self.i)) + '\n' + \
-            '\tLongitude of Ascending Node: ' + str(degrees(self.omega)) + '\n' + \
-            '\tArgument of Perihelion: ' + str(degrees(self.theta)) + '\n' + \
+            '\tLongitude of Ascending Node: ' + str(degrees(self.RAAN)) + '\n' + \
+            '\tArgument of Perihelion: ' + str(degrees(self.omega)) + '\n' + \
             '\tCurrent True Anomaly: ' + str(degrees(self.f))
         name = 'Name: ' + self.name
         mass = 'Mass: ' + str(self.mass)
@@ -151,8 +151,10 @@ class orbit:
     def makeR(self):
         self.r = self.p / (1 + self.e * cos(self.f))
 
-    def iterateTime(self, dt):#set time and iterate time call setMean
-        self.setTime(self.t + dt)
+    def iterateTime(self, dt):#step forward through time
+        self.t+= dt
+        self.setMean(self.eta + dt * self.meanAngMotion)
+        # self.setTime(self.t + dt)
 
     def setMean(self, newEta):#also calculates eccentric and true anomalies and new time
         self.eta = newEta % (2 * pi)
@@ -165,24 +167,24 @@ class orbit:
         self.setMean(newT * self.meanAngMotion + self.eta0)
 
     def x(self):
-        return self.r * (self.co * cos(self.theta + self.f)
-            - self.ci * self.so * sin(self.theta + self.f))
+        return self.r * (self.co * cos(self.omega + self.f)
+            - self.ci * self.so * sin(self.omega + self.f))
     def y(self):
-        return self.r * (self.so * cos(self.theta + self.f)
-            + self.ci * self.co * sin(self.theta + self.f))
+        return self.r * (self.so * cos(self.omega + self.f)
+            + self.ci * self.co * sin(self.omega + self.f))
     def z(self):
-        return self.r * (self.si * sin(self.theta + self.f))
+        return self.r * (self.si * sin(self.omega + self.f))
     def pos(self):
         return np.array([self.x(), self.y(), self.z()])
 
     def vx(self):
-        return -sqrt(mu/self.p)*(self.co*(sin(self.theta+self.f)+self.e*sin(self.theta))
-                                 +self.ci*self.so*(cos(self.theta+self.f)+self.e*cos(self.theta)))
+        return -sqrt(mu/self.p)*(self.co*(sin(self.omega+self.f)+self.e*sin(self.omega))
+                                 +self.ci*self.so*(cos(self.omega+self.f)+self.e*cos(self.omega)))
     def vy(self):
-        return -sqrt(mu/self.p)*(self.so*(sin(self.theta+self.f)+self.e*sin(self.theta))
-                                 -self.ci*self.co*(cos(self.theta+self.f)+self.e*cos(self.theta)))
+        return -sqrt(mu/self.p)*(self.so*(sin(self.omega+self.f)+self.e*sin(self.omega))
+                                 -self.ci*self.co*(cos(self.omega+self.f)+self.e*cos(self.omega)))
     def vz(self):
-        return sqrt(mu/self.p)*self.si*(cos(self.theta+self.f)+self.e*cos(self.theta))
+        return sqrt(mu/self.p)*self.si*(cos(self.omega+self.f)+self.e*cos(self.omega))
     def vel(self):
         return np.array([self.vx(), self.vy(), self.vz()])
 
@@ -197,9 +199,7 @@ class orbit:
         disp = displacement(self, otherBody)
         return disp * gamma / distance**3
 
-    '''I'm not sure the perturbation section is working, but I created the methods
-    based on the perturbation section of the book packet you gave me.
-
+    '''
     There is a method for perturbing from another body (orbit class) which creates
     a force and passes it to the more general perturbation method. In the general perturbation
     method, the force is first converted to cylindrical coordinates, then the time dependent
@@ -210,49 +210,55 @@ class orbit:
     Aside from that, beginPerturb should be called first since it makes what is effectively the
     coordinate transform matrix that gets used to convert the force into cylindrical.
     Once everything is perturbed, endPerturb must be called since it sets variables that
-    are used in the position and velocity methods.'''
+    are used in the position and velocity methods.
+    '''
     def beginPerturb(self):#sets up variables for perturbation
-        ctotal = cos(self.f + self.theta)
-        stotal = sin(self.f + self.theta)
+        ctotal = cos(self.f + self.omega)
+        stotal = sin(self.f + self.omega)
 
         #r,phi,z unit vectors in cartesian coordinates
         
+        #r is the typical radial unit vector
         self.rx = self.co * ctotal - self.ci * self.so * stotal
         self.ry = self.so * ctotal + self.ci * self.co * stotal
         self.rz = self.si * stotal
 
+        #phi is the unit vector orthogonal to r in the plane of orbit
+        #  pointing in the direction of orbit
         self.phix = -self.co * stotal - self.ci * self.so * ctotal
         self.phiy = -self.so * stotal + self.ci * self.co * ctotal
         self.phiz = self.si * ctotal
 
+        #z is the unit vector orthogonal to the plane of orbit with z=r x phi (right hand rule)
         self.zx = self.si * self.so
         self.zy = -self.si * self.co
         self.zz = self.ci
     
     def perturb(self, fx, fy, fz, dt):
+        #decompose force into natural components
         fR = fx * self.rx + fy * self.ry + fz * self.rz
         fPhi = fx * self.phix + fy * self.phiy + fz * self.phiz
         fZ = fx * self.zx + fy * self.zy + fz * self.zz
-        
-        commonSqrt = sqrt(self.p / mu)
-        commonDen = 1 / (1 + self.e * cos(self.f))
-        
-        dp = dt * 2 * self.p * commonSqrt * fPhi * commonDen
-        de = dt * commonSqrt * (sin(self.f) * fR
-                + (2 * cos(self.f) + self.e * (1 + cos(self.f) ** 2)) * fPhi * commonDen)
-        dIncline = dt * commonSqrt * cos(self.f + self.theta) * fZ * commonDen
-        dOmega = dt * commonSqrt * sin(self.f + self.theta) * fZ * commonDen / self.si
-        dTheta = dt * commonSqrt * (-cos(self.f) * fR
-                + (2 + self.e * cos(self.f)) * sin(self.f) * fPhi * commonDen
-                - self.e * (self.ci / self.si) * sin(self.theta + self.f) * fZ * commonDen) / self.e
-        df = -dTheta-self.ci*dOmega
-        
-        self.p += dp
-        self.e += de
-        self.i += dIncline
-        self.omega += dOmega
-        self.theta += dTheta
-        self.f += df
+
+        adot = 2*sqrt(self.a**3/mu/(1-self.e**2))*(self.e * fR*sin(self.f)
+            + fPhi *(1+self.e * cos(self.f)))
+        edot = sqrt(self.a*(1-self.e**2)/mu)*(fR*sin(self.f)+fPhi
+            *(cos(self.f)+cos(self.psi)))
+        idot = sqrt(self.a*(1-self.e**2)/mu)*fZ*cos(self.f+self.omega)/(1+self.e*cos(self.f))
+        RAANdot = sqrt(self.a*(1-self.e**2)/mu)*fZ*sin(self.f+self.omega)\
+            /sin(self.i)/(1+self.e*cos(self.f))
+        omegadot = -RAANdot*cos(self.i)+sqrt(self.a*(1-self.e**2)/self.e**2/mu)\
+            *(-fR * cos(self.f)+fPhi * (2+self.e*cos(self.f))*sin(self.f)
+                /(1+self.e*cos(self.f)))
+        fDot = -omegadot-self.ci*RAANdot
+
+        self.a += dt*adot
+        self.e += dt*edot
+        self.i += dt*idot
+        self.RAAN += dt*RAANdot
+        self.omega += dt*omegadot
+        self.f += dt*fDot
+
 
     def perturbFrom(self, other, dt):#sets up forces from another object and applies them
         distx = self.x() - other.x()
@@ -263,16 +269,18 @@ class orbit:
         self.perturb(distx * temp, disty * temp, distz * temp, dt)
 
     def endPerturb(self):#reassigns commonly used variables
-        self.a = self.p / (1 - self.e*self.e)
-        self.co = cos(self.omega)
-        self.so = sin(self.omega)
+        self.p = self.a * (1-self.e**2)
+        self.co = cos(self.RAAN)
+        self.so = sin(self.RAAN)
         self.ci = cos(self.i)
         self.si = sin(self.i)
         if self.si == 0:
-            self.si = 10 ** -10
-
-# def stateSpaceOrbit(pos, vel, time = 0, mass = 1):
-#     pass
+            self.si = 10e-10
+        self.meanAngMotion = sqrt(mu / self.a ** 3)
+        self.f = self.f % (2 * pi)
+        self.psi = TrueToEccAnom(self.f, self.e)
+        self.eta = EccToMeanAnom(self.psi, self.e)
+        self.makeR()
 
 def displacement(fromOrbit, toOrbit):
     return toOrbit.pos() - fromOrbit.pos()
@@ -310,6 +318,10 @@ class LISA:
 
     def sat(self, n):
         return self.sats[n]
+
+    def iterateTime(self, dt):#step forward through time
+        for sat in self.sats:
+            sat.iterateTime(dt)
 
     def setTime(self, time):
         for sat in self.sats:
@@ -358,7 +370,7 @@ class LISA:
         for sat in self.sats:
             sat.perturb(force[0], force[1], force[2], dt)
 
-    def pertrubFrom(self, otherObject, dt):
+    def perturbFrom(self, otherObject, dt):
         for sat in self.sats:
             sat.perturbFrom(otherObject, dt)
 
