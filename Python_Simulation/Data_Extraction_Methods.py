@@ -79,8 +79,20 @@ def armDifferencer(inputArray):
 def getArmVectors(stacks):
 	return armDifferencer(getPos(stacks))
 
-def getArmLengths(stacks):
+def getBaseArmLength(stacks):
+	# armVectors = getArmVectors(stacks)
 	armVectors = getArmVectors(stacks)
+	output = []
+	for arm in armVectors:
+		armLengths = []
+		for armVectorAtTime in arm:
+			armLengths.append(np.sqrt(sum(armVectorAtTime * armVectorAtTime)))
+		output.append(armLengths)
+	return np.array(output)
+
+def getArmLengths(stacks):
+	# armVectors = getArmVectors(stacks)
+	armVectors = getArmVectors(stacks) + armDifferencer(getD_Pos(stacks))
 	output = []
 	for arm in armVectors:
 		armLengths = []
@@ -175,13 +187,20 @@ def getArmAccels(stacks, times, inCeres):
 	accels = armDifferencer(getAccels(stacks, times))
 	return np.array([arrayDot(item[0], item[1]) for item in zip(armUnits, accels)])
 
-def distToCeres(stacks, times, dt, inCeres):
+def distToCeres(stacks, inCeres):
 	guidePos = getGuidingCenterPos(stacks)
 	output = []
-	for timePoint in zip(times, getGuidingCenterPos(stacks)):
-		displacement = tools.linInterp(inCeres, 0, dt, timePoint[0]) - timePoint[1]
+	for timePoint in zip(inCeres, getGuidingCenterPos(stacks)):
+		displacement = timePoint[0] - timePoint[1]
 		output.append(np.sqrt(sum(displacement**2)))
 	return np.array(output)
+# def distToCeres(stacks, times, dt, inCeres):
+# 	guidePos = getGuidingCenterPos(stacks)
+# 	output = []
+# 	for timePoint in zip(times, getGuidingCenterPos(stacks)):
+# 		displacement = tools.linInterp(inCeres, 0, dt, timePoint[0]) - timePoint[1]
+# 		output.append(np.sqrt(sum(displacement**2)))
+# 	return np.array(output)
 
 def getPerturbativeAccelValues(stacks):
 	accels = [solarDifference(item[0], item[1]) for item in zip(getPos(stacks), getD_Pos(stacks))]
@@ -199,6 +218,25 @@ def normAngleFromArmsToCeres(stacks, times, dt, inCeres):
 	unitToCeres = arrayNormalize(dispToCeres)
 	return np.array([np.arccos(arrayDot(armUnit, unitToCeres)) - np.pi / 2 for armUnit in armUnits])
 
+def constellationArea(stacks):
+	arms = getArmLengths(stacks)
+	areas = []
+	for armState in tools.transpose(arms):
+		s = sum(armState)/2
+		areas.append(np.sqrt(s*(s-armState[0])*(s-armState[1])*(s-armState[2])))
+	return np.array(areas)
+
+def getPerburbationOfArea(stacks):
+	base = getBaseArmLength(stacks)
+	pert = getArmLengths(stacks)
+	dAreas = []
+	for armState in zip(tools.transpose(base), tools.transpose(pert)):
+		bs = sum(armState[0]) / 2
+		ps = sum(armState[1]) / 2
+		baseArea = np.sqrt(bs*(bs-armState[0][0])*(bs-armState[0][1])*(bs-armState[0][2]))
+		pertArea = np.sqrt(ps*(ps-armState[1][0])*(ps-armState[1][1])*(ps-armState[1][2]))
+		dAreas.append(pertArea - baseArea)
+	return np.array(dAreas)
 
 # def relativeAngleToCeres(inputStacks):
 # 	pos = getGuidingCenterPos(inputStacks)

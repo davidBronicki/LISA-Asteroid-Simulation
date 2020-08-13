@@ -348,6 +348,10 @@ def performSimulation(initialConstellationPhase, startYear, totalTime, inputDT):
 	ceres = LISAutils.orbit(math.radians(352.23), 0.0755, math.radians(10.5935),
 		math.radians(80.3099), math.radians(73.11534), 2.767 * LISAutils.astroUnit, anomType = 'meanAnom',
 		simTime = startEpoch, paramTime = 58200, name = 'ceres', mass = ceresMass)
+	venus = LISAutils.orbit(np.radians(181.97973), 0.00677323, np.radians(3.39471),
+		np.radians(76.68069), np.radians(131.53298), 0.7233 * LISAutils.astroUnit, anomType = 'meanAnom',
+		simTime = startEpoch, paramTime = 51544, name = 'Venus', mass = 5.683e26)
+	ceres = venus
 
 	times = np.arange(0, totalTime, dt)
 	for t in times:

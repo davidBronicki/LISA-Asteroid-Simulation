@@ -14,7 +14,7 @@ numberOfYear = 5
 dt = 1e5
 initYear = 2029
 length = year*numberOfYear
-initPhase = -np.pi / 3 + math.radians(80)
+initPhase = -np.pi / 3 + math.radians(0)
 # initPhase = np.pi / 6
 
 stacks, times, ceresPositions, newTimes, dt = performSimulation(initPhase, initYear, length, dt)
@@ -365,9 +365,15 @@ armLengths = getArmLengths(stacks)
 
 
 # plt.figure(0)
-# plt.plot(newTimes, armLengths[0])
-# plt.plot(newTimes, armLengths[1])
-# plt.plot(newTimes, armLengths[2])
+# plt.plot(newTimes, armLengths[0]/1e9, label = "arm 1 length")
+# plt.plot(newTimes, armLengths[1]/1e9, label = "arm 2 length")
+# plt.plot(newTimes, armLengths[2]/1e9, label = "arm 3 length")
+# plt.grid()
+# plt.xlabel("time (years)")
+# plt.ylabel('Arm Length (Gm)')
+# plt.title('Arm Breathing from Full Integrator - 2 Year Span')
+# plt.legend()
+# plt.xticks([2029,2030,2031])
 
 
 # plt.figure(1)
@@ -401,9 +407,9 @@ plt.plot(newTimes, armDif[2], label = 'arm 3 displacement')
 plt.grid()
 plt.xlabel('time (years)')
 plt.ylabel('displacement (meters)')
-plt.title('Perturbation of LISA Arm Lengths due to Ceres\nat 0 Degree Initial Phase Angle')#\nwith 0 constellation phase angle')
+plt.title('Change in LISA Arm Lengths due to Ceres\nat $0\degree$ Initial Phase Angle - 5 Year Span')#\nwith 0 constellation phase angle')
 plt.legend()
-plt.ylim([-20, 20])
+# plt.ylim([-20, 20])
 
 # plt.figure(3)
 # plt.plot(newTimes, normAngleToCeres[0]*180/np.pi, label = 'arm 1 normal angle to Ceres')
